@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nyx4d - 100k-gravity-well-simulation</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+
+        // Create scene, camera, and renderer in ES5
+
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create particle system
+        var particleCount = 100000;
+        var particles = new THREE.BufferGeometry();
+        var particlePositions = new Float32Array(particleCount * 3);
+        var particleVelocities = new Float32Array(particleCount * 3);
+        var particleColors = new Float32Array(particleCount * 3);
+
+        for (var i = 0; i < particleCount; i++) {
+            // Random initial positions
+            var x = Math.random() * 2 - 1;
+            var y = Math.random() * 2 - 1;
+            var z = Math.random() * 2 - 1;
+
+            particlePositions[i * 3] = x;
+            particlePositions[i * 3 + 1] = y;
+            particlePositions[i * 3 + 2] = z;
+
+            // Random initial velocities
+            particleVelocities[i * 3] = Math.random() * 2 - 1;
+            particleVelocities[i * 3 + 1] = Math.random() * 2 - 1;
+            particleVelocities[i * 3 + 2] = Math.random() * 2 - 1;
+
+            // Random initial colors
+            particleColors[i * 3] = Math.random();
+            particleColors[i * 3 + 1] = Math.random();
+            particleColors[i * 3 + 2] = Math.random();
+        }
+
+        particles.addAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        particles.addAttribute('velocity', new THREE.BufferAttribute(particleVelocities, 3));
+        particles.addAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+        var particleMaterial = new THREE.PointsMaterial({
+            size: 3,
+            vertexColors: THREE.VertexColors,
+            opacity: 0.7,
+            transparent: true
+        });
+
+        var particleSystem = new THREE.Points(particles, particleMaterial);
+        scene.add(particleSystem);
+
+        // Add ambient light
+        var ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        // Camera position
+        camera.position.z = 900;
+
+        // Gravity well effect
+        var gravityWell = null;
+
+        function createGravityWell(x, y, z) {
+            gravityWell = new THREE.Vector3(x, y, z);
+            setTimeout(function() {
+                gravityWell = null;
+            }, 190000);
+        }
+
+        document.addEventListener('pointermove', function(event) {
+            var mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            var mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+            createGravityWell(mouseX * 1000, mouseY * 1000, 0);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            var positions = particles.attributes.position.array;
+            var velocities = particles.attributes.velocity.array;
+
+            for (var i = 0; i < particleCount; i++) {
+                // Apply velocity to position
+                positions[i * 3] += velocities[i * 3] * 0.5;
+                positions[i * 3 + 1] += velocities[i * 3 + 1] * 0.5;
+                positions[i * 3 + 2] += velocities[i * 3 + 2] * 0.5;
+
+                // Apply gravity well if active
+                if (gravityWell) {
+                    var dx = gravityWell.x - positions[i * 3];
+                    var dy = gravityWell.y - positions[i * 3 + 1];
+                    var dz = gravityWell.z - positions[i * 3 + 2];
+
+                    var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    var force = dist > 5 ? 1 / (dist * dist) : 0;
+
+                    velocities[i * 3] += (dx * force * 10) * 40;
+                    //velocities[i * 3 + 1] += dy * force * 10;
+                    velocities[i * 3 + 2] += (dz * force * 10) * 40;
+                }
+            }
+            particles.attributes.position.needsUpdate = true;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+      //Github: nyx4d - 100k-gravity-well-simulation
+    </script>
+</body>
+</html>
